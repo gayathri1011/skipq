@@ -12,12 +12,14 @@ import '../../widgets/order_status_timeline.dart';
 class StudentOrderConfirmationScreen extends StatefulWidget {
   const StudentOrderConfirmationScreen({
     super.key,
-    required this.initialOrder,
+    required this.orderId,
+    this.initialOrder,
     required this.ordersService,
     required this.socketService,
   });
 
-  final Order initialOrder;
+  final String orderId;
+  final Order? initialOrder;
   final OrdersService ordersService;
   final SocketService socketService;
 
@@ -28,31 +30,98 @@ class StudentOrderConfirmationScreen extends StatefulWidget {
 
 class _StudentOrderConfirmationScreenState
     extends State<StudentOrderConfirmationScreen> {
-  late Order _order;
+  Order? _order;
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _order = widget.initialOrder;
+    _loading = _order == null;
     _refresh();
     widget.socketService.joinStudentRoom();
-    widget.socketService.onOrderUpdated((updated) {
-      if (updated.id == _order.id && mounted) {
-        setState(() => _order = updated);
-      }
-    });
+    widget.socketService.onOrderUpdated(_handleOrderUpdated);
+  }
+
+  @override
+  void dispose() {
+    widget.socketService.off('order:updated');
+    super.dispose();
+  }
+
+  void _handleOrderUpdated(Order updated) {
+    if (updated.id == widget.orderId && mounted) {
+      setState(() {
+        _order = updated;
+        _loading = false;
+        _error = null;
+      });
+    }
   }
 
   Future<void> _refresh() async {
     try {
       final orders = await widget.ordersService.fetchMyOrders();
-      final latest = orders.where((o) => o.id == _order.id).firstOrNull;
-      if (latest != null && mounted) setState(() => _order = latest);
-    } catch (_) {}
+      final latest = orders.where((o) => o.id == widget.orderId).firstOrNull;
+      if (!mounted) return;
+      if (latest != null) {
+        setState(() {
+          _order = latest;
+          _loading = false;
+          _error = null;
+        });
+      } else if (_order == null) {
+        setState(() {
+          _loading = false;
+          _error = 'Order not found.';
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      if (_order == null) {
+        setState(() {
+          _loading = false;
+          _error = 'Unable to load order details.';
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const AppScaffold(
+        title: 'My Order',
+        showBack: true,
+        backTo: '/student',
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null || _order == null) {
+      return AppScaffold(
+        title: 'My Order',
+        showBack: true,
+        backTo: '/student',
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error ?? 'Order not found.'),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: () => context.go('/student'),
+                child: const Text('BACK TO HOME'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final order = _order!;
+
     return AppScaffold(
       title: 'My Order',
       showBack: true,
@@ -70,7 +139,7 @@ class _StudentOrderConfirmationScreenState
               children: [
                 const Text('Token Number', style: TextStyle(color: AppTheme.textSecondary)),
                 Text(
-                  _order.tokenNumber,
+                  order.tokenNumber,
                   style: const TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.w800,
@@ -84,13 +153,13 @@ class _StudentOrderConfirmationScreenState
                     Column(
                       children: [
                         const Text('Order Placed'),
-                        Text(formatIstTime(_order.createdAt)),
+                        Text(formatIstTime(order.createdAt)),
                       ],
                     ),
                     Column(
                       children: [
                         const Text('Payment'),
-                        Text(_order.paymentMethod.label),
+                        Text(order.paymentMethod.label),
                       ],
                     ),
                   ],
@@ -98,13 +167,29 @@ class _StudentOrderConfirmationScreenState
               ],
             ),
           ),
+          if (order.status == OrderStatus.ready) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.success.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Order ${order.tokenNumber} is ready for pickup.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           const Text('Order Status', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
           const SizedBox(height: 12),
-          OrderStatusTimeline(status: _order.status),
+          OrderStatusTimeline(status: order.status),
           const SizedBox(height: 24),
           const Text('Order Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-          ..._order.items.map(
+          ...order.items.map(
             (item) => ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text('${item.name} × ${item.quantity}'),
@@ -115,7 +200,7 @@ class _StudentOrderConfirmationScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Total', style: TextStyle(fontWeight: FontWeight.w700)),
-              Text('₹${_order.total}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text('₹${order.total}', style: const TextStyle(fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 24),

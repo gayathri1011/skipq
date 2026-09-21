@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
+import '../models/feedback.dart';
 import '../services/feedback_service.dart';
 
 class OrderFeedbackForm extends StatefulWidget {
@@ -15,7 +16,7 @@ class OrderFeedbackForm extends StatefulWidget {
   final String orderId;
   final String tokenNumber;
   final FeedbackService feedbackService;
-  final VoidCallback onSubmitted;
+  final ValueChanged<OrderFeedback> onSubmitted;
 
   @override
   State<OrderFeedbackForm> createState() => _OrderFeedbackFormState();
@@ -43,12 +44,12 @@ class _OrderFeedbackFormState extends State<OrderFeedbackForm> {
       _error = null;
     });
     try {
-      await widget.feedbackService.submitFeedback(
+      final feedback = await widget.feedbackService.submitFeedback(
         orderId: widget.orderId,
         rating: _rating,
         review: _reviewController.text,
       );
-      widget.onSubmitted();
+      widget.onSubmitted(feedback);
     } catch (_) {
       setState(() => _error = 'Unable to submit feedback. Please try again.');
     } finally {

@@ -6,6 +6,7 @@ import '../services/orders_service.dart';
 import '../services/payment_service.dart';
 import '../services/settings_service.dart';
 import '../services/socket_service.dart';
+import '../services/super_admin_service.dart';
 
 class AppServices {
   AppServices() : apiClient = ApiClient() {
@@ -16,6 +17,7 @@ class AppServices {
     feedbackService = FeedbackService(apiClient);
     settingsService = SettingsService(apiClient);
     socketService = SocketService(apiClient);
+    superAdminService = SuperAdminService(apiClient);
   }
 
   final ApiClient apiClient;
@@ -26,4 +28,5 @@ class AppServices {
   late final FeedbackService feedbackService;
   late final SettingsService settingsService;
   late final SocketService socketService;
+  late final SuperAdminService superAdminService;
 }

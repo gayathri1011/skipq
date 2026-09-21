@@ -1,0 +1,211 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-gray-50);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: var(--max-width-content);
+  margin: 0 auto;
+  padding: var(--space-4);
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+}
+
+.tokenCard,
+.section {
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.tokenCard {
+  text-align: center;
+}
+
+.tokenLabel {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.token {
+  display: block;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: var(--font-size-4xl);
+  letter-spacing: 0.06em;
+}
+
+.message {
+  max-width: 34rem;
+  margin: var(--space-3) auto 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.section {
+  padding: var(--space-4);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-5);
+  font-family: var(--font-display);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+}
+
+.tracker {
+  position: relative;
+  padding: 0 var(--space-2);
+}
+
+.progressTrack,
+.progressFill {
+  position: absolute;
+  top: 1.15rem;
+  height: 0.2rem;
+  border-radius: var(--radius-full);
+}
+
+.progressTrack {
+  left: calc(12.5% + 1.15rem);
+  width: calc(75% - 2.3rem);
+  background: var(--color-gray-200);
+  z-index: 0;
+}
+
+.progressFill {
+  top: 0;
+  left: 0;
+  width: 0;
+  background: var(--color-primary);
+}
+
+.stages {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.stageIcon {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  color: var(--color-text-secondary);
+  background: var(--color-gray-50);
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-full);
+}
+
+.stageLabel {
+  max-width: 7rem;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+}
+
+.stage.complete,
+.stage.current {
+  color: var(--color-primary);
+}
+
+.stage.complete .stageIcon {
+  color: var(--color-text-inverse);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.stage.current .stageIcon {
+  color: var(--color-primary);
+  background: var(--color-primary-muted);
+  border-color: var(--color-primary);
+  animation: stagePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes stagePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgb(254 65 1 / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(254 65 1 / 0.18);
+  }
+}
+
+.cancelled {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.itemRow,
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.itemRow {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.totalRow {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-bold);
+}
+
+.error {
+  max-width: var(--max-width-content);
+  margin: var(--space-4) auto;
+  padding: var(--space-4);
+  color: var(--color-error);
+  background: var(--color-error-muted);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .tokenCard,
+  .section {
+    padding: var(--space-4);
+  }
+
+  .stageLabel {
+    max-width: 4.8rem;
+  }
+}

@@ -15,6 +15,9 @@ const buildStudentResponse = (student, token) => ({
       role: 'student',
       name: student.name,
       mobile: student.mobile,
+      registerNumber: student.registerNumber ?? '',
+      department: student.department ?? '',
+      academicStream: student.academicStream ?? '',
     },
   },
 });
@@ -208,7 +211,9 @@ export const getMe = async (req, res) => {
     const { id, role } = req.user;
 
     if (role === 'student') {
-      const student = await Student.findById(id).select('name mobile createdAt');
+      const student = await Student.findById(id).select(
+        'name mobile registerNumber department academicStream createdAt',
+      );
 
       if (!student) {
         return res.status(404).json({
@@ -225,6 +230,9 @@ export const getMe = async (req, res) => {
             role: 'student',
             name: student.name,
             mobile: student.mobile,
+            registerNumber: student.registerNumber ?? '',
+            department: student.department ?? '',
+            academicStream: student.academicStream ?? '',
           },
         },
       });
@@ -262,6 +270,47 @@ export const getMe = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Unable to fetch user profile',
+    });
+  }
+};
+
+export const updateStudentProfile = async (req, res) => {
+  try {
+    const fields = ['name', 'registerNumber', 'department', 'academicStream'];
+    const updates = Object.fromEntries(
+      fields.map((field) => [field, String(req.body[field] ?? '').trim()]),
+    );
+    const student = await Student.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student account not found',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        user: {
+          id: student._id,
+          role: 'student',
+          name: student.name,
+          mobile: student.mobile,
+          registerNumber: student.registerNumber ?? '',
+          department: student.department ?? '',
+          academicStream: student.academicStream ?? '',
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Update student profile error:', error.message);
+    return res.status(400).json({
+      success: false,
+      message: 'Unable to update student profile',
     });
   }
 };

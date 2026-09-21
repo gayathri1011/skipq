@@ -1,5 +1,51 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Check, Pencil, Trash2, UtensilsCrossed, X } from 'lucide-react';
+import {
+  Apple,
+  Banana,
+  Bean,
+  Beef,
+  CakeSlice,
+  Candy,
+  Carrot,
+  Check,
+  ChefHat,
+  Cherry,
+  ChevronRight,
+  CircleDot,
+  CirclePlus,
+  Citrus,
+  Cookie,
+  CookingPot,
+  CupSoda,
+  Croissant,
+  Donut,
+  Drumstick,
+  Egg,
+  Fish,
+  Flame,
+  GlassWater,
+  Glasses,
+  Grape,
+  Ham,
+  IceCreamBowl,
+  Leaf,
+  Martini,
+  Milk,
+  Nut,
+  PackageOpen,
+  Pencil,
+  Pizza,
+  Popcorn,
+  Salad,
+  Sandwich,
+  Soup,
+  Trash2,
+  UtensilsCrossed,
+  Wheat,
+  Wine,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import {
   fetchManagerMenu,
   createMenuItem,
@@ -7,6 +53,9 @@ import {
   updateMenuItemPrice,
   toggleMenuItemAvailability,
   deleteMenuItem,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 } from '../services/managerMenu';
 import type { Category, MenuItem } from '../types/menu';
 import { FoodCardSkeletonGrid } from '../components/FoodCardSkeleton';
@@ -14,6 +63,58 @@ import { EmptyState } from '../components/ui/UiStates';
 import styles from './ManagerMenuPage.module.css';
 
 const normalizeId = (id: unknown) => String(id ?? '');
+
+const categoryIcons = [
+  { key: 'restaurant', label: 'Restaurant', icon: UtensilsCrossed },
+  { key: 'rice_bowl', label: 'Rice bowl', icon: Soup },
+  { key: 'fastfood', label: 'Fast food', icon: ChefHat },
+  { key: 'local_pizza', label: 'Pizza', icon: Pizza },
+  { key: 'cake', label: 'Cake', icon: CakeSlice },
+  { key: 'icecream', label: 'Ice cream', icon: IceCreamBowl },
+  { key: 'bakery_dining', label: 'Bakery', icon: Croissant },
+  { key: 'apple', label: 'Apple', icon: Apple },
+  { key: 'banana', label: 'Banana', icon: Banana },
+  { key: 'beef', label: 'Beef', icon: Beef },
+  { key: 'candy', label: 'Candy', icon: Candy },
+  { key: 'carrot', label: 'Carrot', icon: Carrot },
+  { key: 'cherry', label: 'Cherry', icon: Cherry },
+  { key: 'citrus', label: 'Citrus', icon: Citrus },
+  { key: 'cookie', label: 'Cookie', icon: Cookie },
+  { key: 'cooking_pot', label: 'Cooking pot', icon: CookingPot },
+  { key: 'cup_soda', label: 'Soft drink', icon: CupSoda },
+  { key: 'donut', label: 'Donut', icon: Donut },
+  { key: 'drumstick', label: 'Drumstick', icon: Drumstick },
+  { key: 'egg', label: 'Egg', icon: Egg },
+  { key: 'fish', label: 'Fish', icon: Fish },
+  { key: 'flame', label: 'Spicy', icon: Flame },
+  { key: 'glass_water', label: 'Water', icon: GlassWater },
+  { key: 'glasses', label: 'Glasses', icon: Glasses },
+  { key: 'grape', label: 'Grape', icon: Grape },
+  { key: 'ham', label: 'Ham', icon: Ham },
+  { key: 'leaf', label: 'Leaf', icon: Leaf },
+  { key: 'martini', label: 'Drink', icon: Martini },
+  { key: 'milk', label: 'Milk', icon: Milk },
+  { key: 'nut', label: 'Nut', icon: Nut },
+  { key: 'package_open', label: 'Takeaway', icon: PackageOpen },
+  { key: 'popcorn', label: 'Popcorn', icon: Popcorn },
+  { key: 'salad', label: 'Salad', icon: Salad },
+  { key: 'sandwich', label: 'Sandwich', icon: Sandwich },
+  { key: 'wheat', label: 'Wheat', icon: Wheat },
+  { key: 'wine', label: 'Beverage', icon: Wine },
+  { key: 'indian_thali', label: 'Indian thali', icon: UtensilsCrossed },
+  { key: 'tandoor', label: 'Tandoor', icon: CookingPot },
+  { key: 'curry_pot', label: 'Curry pot', icon: CookingPot },
+  { key: 'spice', label: 'Spices', icon: Flame },
+  { key: 'lentils', label: 'Lentils', icon: Bean },
+  { key: 'coriander', label: 'Coriander', icon: Leaf },
+  { key: 'masala', label: 'Masala', icon: Soup },
+  { key: 'roti', label: 'Roti', icon: Wheat },
+  { key: 'idli', label: 'Idli', icon: CircleDot },
+  { key: 'chai', label: 'Chai', icon: CupSoda },
+] satisfies { key: string; label: string; icon: LucideIcon }[];
+
+const getCategoryIcon = (key?: string) =>
+  categoryIcons.find((item) => item.key === key)?.icon ?? UtensilsCrossed;
 
 const resolveCategoryId = (item: MenuItem, categories: Category[]) => {
   const itemCat = normalizeId(item.categoryId);
@@ -34,7 +135,6 @@ const ManagerMenuPage = () => {
     name: '',
     description: '',
     price: '',
-    categoryId: '',
     isVeg: true,
   });
   const [formImage, setFormImage] = useState<File | null>(null);
@@ -48,6 +148,22 @@ const ManagerMenuPage = () => {
     isVeg: true,
   });
   const [editImage, setEditImage] = useState<File | null>(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    icon: 'restaurant',
+    sortOrder: '0',
+  });
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null,
+  );
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+
+  const selectCategory = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -57,13 +173,6 @@ const ManagerMenuPage = () => {
         if (!cancelled) {
           setCategories(data.categories);
           setItems(data.items);
-          if (data.categories[0]) {
-            setForm((f) =>
-              f.categoryId
-                ? f
-                : { ...f, categoryId: normalizeId(data.categories[0]._id) },
-            );
-          }
         }
       })
       .catch(() => {
@@ -80,6 +189,11 @@ const ManagerMenuPage = () => {
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
+    if (!selectedCategoryId) {
+      setError('Select a category above to add an item to it.');
+      return;
+    }
+
     setFormLoading(true);
     setError('');
     try {
@@ -87,7 +201,7 @@ const ManagerMenuPage = () => {
       fd.append('name', form.name);
       fd.append('description', form.description);
       fd.append('price', form.price);
-      fd.append('categoryId', form.categoryId);
+      fd.append('categoryId', selectedCategoryId);
       fd.append('isVeg', String(form.isVeg));
       if (formImage) fd.append('image', formImage);
 
@@ -99,7 +213,6 @@ const ManagerMenuPage = () => {
         name: '',
         description: '',
         price: '',
-        categoryId: categories[0] ? normalizeId(categories[0]._id) : '',
         isVeg: true,
       });
       setFormImage(null);
@@ -201,6 +314,75 @@ const ManagerMenuPage = () => {
     }
   };
 
+  const saveCategory = async (e: FormEvent) => {
+    e.preventDefault();
+    setFormLoading(true);
+    setError('');
+    try {
+      const payload = {
+        name: categoryForm.name.trim(),
+        icon: categoryForm.icon,
+        sortOrder: Number(categoryForm.sortOrder) || 0,
+      };
+      const category = editingCategoryId
+        ? await updateCategory(editingCategoryId, payload)
+        : await createCategory(payload);
+      setCategories((prev) => {
+        const next = editingCategoryId
+          ? prev.map((item) => (item._id === category._id ? category : item))
+          : [...prev, category];
+        return [...next].sort(
+          (a, b) =>
+            (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+            a.name.localeCompare(b.name),
+        );
+      });
+      setForm((current) => ({
+        ...current,
+        categoryId: editingCategoryId ?? normalizeId(category._id),
+      }));
+      setCategoryForm({ name: '', icon: 'restaurant', sortOrder: '0' });
+      setEditingCategoryId(null);
+      return true;
+    } catch {
+      setError('Unable to save category.');
+      return false;
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const startCategoryEdit = (category: Category) => {
+    setEditingCategoryId(category._id);
+    setCategoryForm({
+      name: category.name,
+      icon: category.icon ?? 'restaurant',
+      sortOrder: String(category.sortOrder ?? 0),
+    });
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!window.confirm('Delete this category?')) return;
+
+    try {
+      await deleteCategory(id);
+      const remaining = categories.filter((category) => category._id !== id);
+      setCategories(remaining);
+      if (selectedCategoryId === id) {
+        selectCategory(remaining[0] ? normalizeId(remaining[0]._id) : null);
+      }
+      setError('Category deleted.');
+    } catch {
+      setError(
+        'This category still has menu items in it. Move or delete those items first.',
+      );
+    }
+  };
+
+  const filteredItems = selectedCategoryId
+    ? items.filter((item) => normalizeId(item.categoryId) === selectedCategoryId)
+    : items;
+
   const renderCategoryOptions = (placeholder: string) => {
     if (categories.length === 0) {
       return (
@@ -227,11 +409,187 @@ const ManagerMenuPage = () => {
   return (
     <div className={styles.page}>
       <section className={styles.section}>
+        <div className={styles.categoryHeader}>
+          <div>
+            <h2 className={styles.sectionTitle}>Category Master</h2>
+            <p className={styles.sectionHint}>
+              Select a category to manage its menu items.
+            </p>
+          </div>
+          {selectedCategoryId && (
+            <button
+              type="button"
+              className={styles.clearCategoryBtn}
+              onClick={() => selectCategory(null)}
+            >
+              All items
+            </button>
+          )}
+        </div>
+        <ul className={styles.categorySlider}>
+          {categories.map((category) => (
+            <li
+              key={category._id}
+              className={`${styles.categoryCard} ${selectedCategoryId === category._id ? styles.categoryCardActive : ''}`}
+            >
+              <button
+                type="button"
+                className={styles.categorySelectBtn}
+                onClick={() =>
+                  selectCategory(
+                    selectedCategoryId === category._id
+                      ? null
+                      : category._id,
+                  )
+                }
+              >
+                {(() => {
+                  const Icon = getCategoryIcon(category.icon);
+                  return <Icon size={25} />;
+                })()}
+                <span>{category.name}</span>
+                <ChevronRight size={15} className={styles.categoryArrow} />
+              </button>
+              <span className={styles.categoryActions}>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  aria-label={`Edit ${category.name}`}
+                  onClick={() => {
+                    startCategoryEdit(category);
+                    setShowCategoryModal(true);
+                  }}
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  aria-label={`Delete ${category.name}`}
+                  onClick={() => handleDeleteCategory(category._id)}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </span>
+            </li>
+          ))}
+          <li className={styles.newCategoryCard}>
+            <button
+              type="button"
+              className={styles.newCategoryBtn}
+              onClick={() => {
+                setEditingCategoryId(null);
+                setCategoryForm({
+                  name: '',
+                  icon: 'restaurant',
+                  sortOrder: String(categories.length),
+                });
+                setShowCategoryModal(true);
+              }}
+            >
+              <CirclePlus size={25} />
+              <span>+ New Category</span>
+            </button>
+          </li>
+        </ul>
+
+        {showCategoryModal && (
+          <div className={styles.modalBackdrop} role="presentation">
+            <form
+              className={styles.modal}
+              onSubmit={(event) => {
+                void saveCategory(event).then((saved) => {
+                  if (saved) setShowCategoryModal(false);
+                });
+              }}
+            >
+              <div className={styles.modalHeader}>
+                <h3>{editingCategoryId ? 'Edit Category' : 'New Category'}</h3>
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  aria-label="Close category dialog"
+                  onClick={() => setShowCategoryModal(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Category name</span>
+                <input
+                  className={styles.input}
+                  value={categoryForm.name}
+                  required
+                  autoFocus
+                  onChange={(e) =>
+                    setCategoryForm({ ...categoryForm, name: e.target.value })
+                  }
+                />
+              </label>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>Choose icon</span>
+                <div className={styles.iconGrid}>
+                  {categoryIcons.map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`${styles.iconChoice} ${categoryForm.icon === key ? styles.iconChoiceActive : ''}`}
+                      onClick={() => setCategoryForm({ ...categoryForm, icon: key })}
+                    >
+                      <Icon size={20} />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className={styles.field}>
+                <span className={styles.fieldLabel}>Display order</span>
+                <input
+                  className={styles.input}
+                  type="number"
+                  min="0"
+                  value={categoryForm.sortOrder}
+                  onChange={(e) =>
+                    setCategoryForm({ ...categoryForm, sortOrder: e.target.value })
+                  }
+                />
+              </label>
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.cancelBtn}
+                  onClick={() => setShowCategoryModal(false)}
+                >
+                  Cancel
+                </button>
+                <button className={styles.addBtn} type="submit" disabled={formLoading}>
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </section>
+      <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Add New Item</h2>
         <p className={styles.sectionHint}>
-          Fill in the details below to add a dish to the menu.
+          {selectedCategoryId
+            ? `Fill in the details below to add a dish to ${categories.find((category) => category._id === selectedCategoryId)?.name ?? 'the selected category'}.`
+            : 'Select a category above to add an item to it.'}
         </p>
-        <form className={styles.addForm} onSubmit={handleCreate}>
+        {selectedCategoryId && (
+          <p className={styles.addingTo}>
+            Adding to:{' '}
+            <strong>
+              {categories.find((category) => category._id === selectedCategoryId)?.name}
+            </strong>
+          </p>
+        )}
+        <fieldset
+          className={styles.formFieldset}
+          disabled={!selectedCategoryId || formLoading}
+        >
+          <form className={styles.addForm} onSubmit={handleCreate}>
           <label className={styles.field}>
             <span className={styles.fieldLabel}>Item name</span>
             <input
@@ -267,17 +625,6 @@ const ManagerMenuPage = () => {
               className={styles.input}
             />
           </label>
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Category</span>
-            <select
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              required
-              className={styles.select}
-            >
-              {renderCategoryOptions('Choose category')}
-            </select>
-          </label>
           <label className={styles.checkLabel}>
             <input
               type="checkbox"
@@ -298,11 +645,12 @@ const ManagerMenuPage = () => {
           <button
             type="submit"
             className={styles.addBtn}
-            disabled={formLoading || categories.length === 0}
+            disabled={!selectedCategoryId || formLoading}
           >
             Add Item
           </button>
-        </form>
+          </form>
+        </fieldset>
       </section>
 
       {error && <p className={styles.error}>{error}</p>}
@@ -329,7 +677,7 @@ const ManagerMenuPage = () => {
             pencil to edit other details.
           </p>
           <ul className={styles.list}>
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <li key={item.id} className={styles.itemRow}>
                 <div className={styles.imageWrap}>
                   {item.imageUrl ? (
@@ -455,11 +803,11 @@ const ManagerMenuPage = () => {
                         <h3 className={styles.itemName}>{item.name}</h3>
                         <p className={styles.category}>{item.categoryName}</p>
                       </div>
-                      <span
-                        className={`${styles.vegBadge} ${item.isVeg ? styles.vegBadgeVeg : styles.vegBadgeNonVeg}`}
-                      >
-                        {item.isVeg ? 'Veg' : 'Non-Veg'}
-                      </span>
+                      {item.isVeg && (
+                        <span className={`${styles.vegBadge} ${styles.vegBadgeVeg}`}>
+                          Veg
+                        </span>
+                      )}
                     </div>
 
                     {item.description && (

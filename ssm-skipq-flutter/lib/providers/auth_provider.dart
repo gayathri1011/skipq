@@ -65,6 +65,21 @@ class AuthProvider extends ChangeNotifier {
     await _completeLogin(result);
   }
 
+  Future<void> updateStudentProfile({
+    required String name,
+    required String registerNumber,
+    required String department,
+    required String academicStream,
+  }) async {
+    _user = await _auth.updateStudentProfile(
+      name: name,
+      registerNumber: registerNumber,
+      department: department,
+      academicStream: academicStream,
+    );
+    notifyListeners();
+  }
+
   Future<void> _completeLogin(AuthResult result) async {
     await _api.setToken(result.token);
     _user = result.user;
@@ -85,7 +100,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  String messageFromError(Object error, {String fallback = 'Something went wrong'}) {
+  String messageFromError(Object error,
+      {String fallback = 'Something went wrong'}) {
     if (error is DioException) {
       return _api.messageFromError(error, fallback: fallback);
     }

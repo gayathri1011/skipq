@@ -24,6 +24,7 @@ export interface Order {
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
   status: OrderStatus;
+  cancelledBy?: 'STUDENT';
   tokenNumber: string;
   createdAt: string;
   hasFeedback?: boolean;

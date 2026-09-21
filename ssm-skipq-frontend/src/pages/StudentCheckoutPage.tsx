@@ -99,7 +99,7 @@ const StudentCheckoutPage = () => {
       }
 
       clear();
-      navigate('/student/order-confirmation', {
+      navigate(`/student/track-order/${finalOrder.id}`, {
         replace: true,
         state: { order: finalOrder },
       });

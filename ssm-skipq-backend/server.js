@@ -9,6 +9,7 @@ import menuRoutes from './routes/menuRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import superAdminRoutes from './routes/superAdminRoutes.js';
 import {
   getAllowedOrigins,
   getSocketCorsOptions,
@@ -45,7 +46,7 @@ app.use((req, res, next) => {
     );
     res.setHeader(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization',
+      'Content-Type, Authorization, X-Super-Admin-Id, X-Super-Admin-Password',
     );
     res.setHeader('Vary', 'Origin');
   }
@@ -83,6 +84,7 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/super-admin', superAdminRoutes);
 
 app.set('io', io);
 

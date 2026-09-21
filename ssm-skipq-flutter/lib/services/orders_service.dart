@@ -1,3 +1,4 @@
+import '../models/dashboard_analytics.dart';
 import '../models/order.dart';
 import '../models/payment.dart';
 import 'api_client.dart';
@@ -30,7 +31,9 @@ class OrdersService {
     required num total,
     required PaymentMethod paymentMethod,
     PaymentStatus? paymentStatus,
+    String note = '',
   }) async {
+    final trimmedNote = note.trim();
     final response = await _api.dio.post<Map<String, dynamic>>(
       '/orders',
       data: {
@@ -38,6 +41,7 @@ class OrdersService {
         'total': total,
         'paymentMethod': paymentMethod.apiValue,
         if (paymentStatus != null) 'paymentStatus': paymentStatus.apiValue,
+        if (trimmedNote.isNotEmpty) 'note': trimmedNote,
       },
     );
     final data = response.data?['data'] as Map<String, dynamic>? ?? {};
@@ -59,9 +63,36 @@ class OrdersService {
         .toList();
   }
 
+  Future<DashboardAnalytics> fetchDashboardAnalytics({
+    required String range,
+    String? startDate,
+    String? endDate,
+  }) async {
+    final response = await _api.dio.get<Map<String, dynamic>>(
+      '/orders/analytics',
+      queryParameters: {
+        'range': range,
+        if (startDate != null) 'startDate': startDate,
+        if (endDate != null) 'endDate': endDate,
+      },
+    );
+
+    final data = response.data?['data'] as Map<String, dynamic>? ?? {};
+    final analytics = data['analytics'] as Map<String, dynamic>? ?? {};
+    return DashboardAnalytics.fromJson(analytics);
+  }
+
   Future<Order> advanceStatus(String orderId) async {
     final response =
         await _api.dio.patch<Map<String, dynamic>>('/orders/$orderId/status');
+    final order = (response.data?['data'] as Map<String, dynamic>)['order'];
+    return Order.fromJson(order as Map<String, dynamic>);
+  }
+
+  Future<Order> cancelOrder(String orderId) async {
+    final response = await _api.dio.patch<Map<String, dynamic>>(
+      '/orders/$orderId/cancel',
+    );
     final order = (response.data?['data'] as Map<String, dynamic>)['order'];
     return Order.fromJson(order as Map<String, dynamic>);
   }

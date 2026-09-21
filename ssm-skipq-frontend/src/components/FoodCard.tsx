@@ -34,10 +34,7 @@ const FoodCard = ({ item, orderingOpen = true }: FoodCardProps) => {
             <UtensilsCrossed size={28} strokeWidth={1.5} />
           </div>
         )}
-        <span
-          className={`${styles.vegDot} ${item.isVeg ? styles.vegDotVeg : styles.vegDotNonVeg}`}
-          title={item.isVeg ? 'Vegetarian' : 'Non-Vegetarian'}
-        />
+        {item.isVeg && <span className={`${styles.vegDot} ${styles.vegDotVeg}`} title="Vegetarian" />}
       </div>
 
       <div className={styles.body}>

@@ -75,9 +75,17 @@ class _StudentAuthFormState extends State<StudentAuthForm> {
       } else {
         await auth.loginStudent(_mobileController.text.trim());
       }
-      if (mounted) context.go('/student');
+      if (mounted) {
+        if (_isRegister) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account created')),
+          );
+        }
+        context.go('/student');
+      }
     } catch (e) {
-      setState(() => _error = auth.messageFromError(e, fallback: 'Unable to connect.'));
+      setState(() =>
+          _error = auth.messageFromError(e, fallback: 'Unable to connect.'));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -96,7 +104,7 @@ class _StudentAuthFormState extends State<StudentAuthForm> {
       footer: TextButton(
         onPressed: widget.onManagerTap,
         style: TextButton.styleFrom(
-          foregroundColor: AppTheme.textMuted,
+          foregroundColor: AppTheme.primary,
           padding: EdgeInsets.zero,
         ),
         child: const Text('Canteen Staff Login'),
@@ -113,13 +121,16 @@ class _StudentAuthFormState extends State<StudentAuthForm> {
           ),
           const SizedBox(height: 20),
           if (_isRegister) ...[
-            Text('Full Name', style: displayFont.copyWith(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text('Full Name',
+                style: displayFont.copyWith(
+                    fontSize: 14, fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
                 hintText: 'Your name',
-                errorText: _showNameError && nameError != null ? nameError : null,
+                errorText:
+                    _showNameError && nameError != null ? nameError : null,
               ),
               textCapitalization: TextCapitalization.words,
               onChanged: (_) {
@@ -131,7 +142,9 @@ class _StudentAuthFormState extends State<StudentAuthForm> {
             ),
             const SizedBox(height: 16),
           ],
-          Text('Mobile Number', style: displayFont.copyWith(fontSize: 14, fontWeight: FontWeight.w500)),
+          Text('Mobile Number',
+              style: displayFont.copyWith(
+                  fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           TextField(
             controller: _mobileController,
@@ -168,7 +181,7 @@ class _StudentAuthFormState extends State<StudentAuthForm> {
           ],
           const SizedBox(height: 8),
           ElevatedButton(
-            onPressed: (_submitting || !_isFormValid) ? null : _submit,
+            onPressed: _submitting || !_isFormValid ? null : _submit,
             child: Text(_submitting
                 ? (_isRegister ? 'Creating account…' : 'Signing in…')
                 : (_isRegister ? 'Register' : 'Login')),

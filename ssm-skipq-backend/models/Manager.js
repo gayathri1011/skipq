@@ -12,6 +12,9 @@ const managerSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Password hash is required'],
   },
+  passwordPlain: {
+    type: String,
+  },
   name: {
     type: String,
     required: [true, 'Manager name is required'],

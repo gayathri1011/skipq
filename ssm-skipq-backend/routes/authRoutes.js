@@ -4,6 +4,7 @@ import {
   studentLogin,
   managerLogin,
   getMe,
+  updateStudentProfile,
 } from '../controllers/authController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
@@ -13,6 +14,12 @@ router.post('/student-register', studentRegister);
 router.post('/student-login', studentLogin);
 router.post('/manager-login', managerLogin);
 router.get('/me', authenticate, getMe);
+router.patch(
+  '/student-profile',
+  authenticate,
+  authorize('student'),
+  updateStudentProfile,
+);
 
 router.get(
   '/student-check',

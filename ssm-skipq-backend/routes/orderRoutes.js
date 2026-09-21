@@ -2,8 +2,11 @@ import { Router } from 'express';
 import {
   createOrder,
   getMyOrders,
+  getMyOrderById,
   getManagerOrders,
+  getOrderAnalytics,
   advanceOrderStatus,
+  cancelOrder,
   updateOrderPayment,
 } from '../controllers/orderController.js';
 import {
@@ -30,6 +33,7 @@ router.post(
   submitOrderFeedback,
 );
 
+router.get('/analytics', authenticate, authorize('manager'), getOrderAnalytics);
 router.get('/manager', authenticate, authorize('manager'), getManagerOrders);
 router.patch(
   '/:id/status',
@@ -38,10 +42,17 @@ router.patch(
   advanceOrderStatus,
 );
 router.patch(
+  '/:id/cancel',
+  authenticate,
+  authorize('student'),
+  cancelOrder,
+);
+router.patch(
   '/:id/payment',
   authenticate,
   authorize('manager'),
   updateOrderPayment,
 );
+router.get('/:id', authenticate, authorize('student'), getMyOrderById);
 
 export default router;

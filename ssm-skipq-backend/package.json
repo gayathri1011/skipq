@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "test:db": "node scripts/testConnection.js",
     "seed": "node seed.js",
-    "seed:manager": "node scripts/seedManager.js"
+    "seed:manager": "node scripts/seedManager.js",
+    "backfill:manager-passwords": "node scripts/backfillManagerPasswords.js"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +24,8 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
+    "firebase-admin": "^13.10.0",
+    "google-auth-library": "^10.9.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
     "multer": "^2.0.2",

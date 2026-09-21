@@ -11,9 +11,27 @@ const studentSchema = new mongoose.Schema(
     mobile: {
       type: String,
       required: [true, 'Mobile number is required'],
-      unique: true,
       trim: true,
+      unique: true,
       match: [/^[6-9]\d{9}$/, 'Mobile must be a valid 10-digit Indian number'],
+    },
+    registerNumber: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+      default: '',
+    },
+    department: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: '',
+    },
+    academicStream: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+      default: '',
     },
   },
   {

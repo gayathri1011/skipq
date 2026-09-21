@@ -2,23 +2,10 @@ import Category from '../models/Category.js';
 import MenuItem from '../models/MenuItem.js';
 import { uploadImageBuffer, deleteCloudinaryImage } from '../utils/cloudinaryUpload.js';
 
-const CATEGORY_ORDER = [
-  'Rice Varieties',
-  'Parotta',
-  'Fried Rice',
-  'Chapati',
-  'Side Dishes',
-  'Gravies',
-  'Puffs',
-  'Snacks',
-  'Desserts',
-];
-
 const sortCategories = (categories) =>
   [...categories].sort((a, b) => {
-    const indexA = CATEGORY_ORDER.indexOf(a.name);
-    const indexB = CATEGORY_ORDER.indexOf(b.name);
-    return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+    const orderDifference = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
+    return orderDifference || a.name.localeCompare(b.name);
   });
 
 const formatMenuItem = (item) => ({
@@ -49,6 +36,81 @@ export const getCategories = async (_req, res) => {
       success: false,
       message: 'Unable to fetch categories',
     });
+  }
+};
+
+export const createCategory = async (req, res) => {
+  try {
+    const name = req.body.name?.trim();
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Category name is required',
+      });
+    }
+
+    const highest = await Category.findOne().sort({ sortOrder: -1 }).lean();
+    const category = await Category.create({
+      name,
+      icon: req.body.icon?.trim() || 'restaurant',
+      sortOrder: Number.isFinite(Number(req.body.sortOrder))
+        ? Number(req.body.sortOrder)
+        : (highest?.sortOrder ?? -1) + 1,
+    });
+
+    return res.status(201).json({ success: true, data: { category } });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Category already exists' });
+    }
+    console.error('Create category error:', error.message);
+    return res.status(500).json({ success: false, message: 'Unable to create category' });
+  }
+};
+
+export const updateCategory = async (req, res) => {
+  try {
+    const updates = {};
+    if (req.body.name !== undefined) {
+      const name = req.body.name.trim();
+      if (!name) return res.status(400).json({ success: false, message: 'Category name is required' });
+      updates.name = name;
+    }
+    if (req.body.icon !== undefined) updates.icon = req.body.icon.trim() || 'restaurant';
+    if (req.body.sortOrder !== undefined) updates.sortOrder = Number(req.body.sortOrder);
+
+    const category = await Category.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    }).lean();
+
+    if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
+    return res.json({ success: true, data: { category } });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'Category already exists' });
+    }
+    console.error('Update category error:', error.message);
+    return res.status(500).json({ success: false, message: 'Unable to update category' });
+  }
+};
+
+export const deleteCategory = async (req, res) => {
+  try {
+    const itemCount = await MenuItem.countDocuments({ category: req.params.id });
+    if (itemCount > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Move or delete menu items before deleting this category',
+      });
+    }
+
+    const category = await Category.findByIdAndDelete(req.params.id);
+    if (!category) return res.status(404).json({ success: false, message: 'Category not found' });
+    return res.json({ success: true, message: 'Category deleted' });
+  } catch (error) {
+    console.error('Delete category error:', error.message);
+    return res.status(500).json({ success: false, message: 'Unable to delete category' });
   }
 };
 

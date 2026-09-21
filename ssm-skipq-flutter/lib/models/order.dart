@@ -11,6 +11,38 @@ enum OrderStatus {
   cancelled,
 }
 
+extension OrderStatusExtensions on OrderStatus {
+  bool get isActiveOrderStatus {
+    switch (this) {
+      case OrderStatus.pending:
+      case OrderStatus.confirmed:
+      case OrderStatus.preparing:
+      case OrderStatus.ready:
+      case OrderStatus.pickedUp:
+        return true;
+      case OrderStatus.cancelled:
+        return false;
+    }
+  }
+}
+
+Order? getCurrentActiveOrderForStudent(List<Order> orders, {String? orderId}) {
+  final activeOrders =
+      orders.where((order) => order.status.isActiveOrderStatus);
+  if (orderId != null) {
+    final match = activeOrders.where((order) => order.id == orderId).toList();
+    if (match.isNotEmpty) {
+      return match.reduce((current, next) =>
+          next.createdAt.isAfter(current.createdAt) ? next : current);
+    }
+    return null;
+  }
+
+  if (activeOrders.isEmpty) return null;
+  return activeOrders.reduce((current, next) =>
+      next.createdAt.isAfter(current.createdAt) ? next : current);
+}
+
 extension PaymentMethodX on PaymentMethod {
   String get apiValue {
     switch (this) {
@@ -70,6 +102,7 @@ extension OrderStatusX on OrderStatus {
       case 'READY':
         return OrderStatus.ready;
       case 'PICKED_UP':
+      case 'COMPLETED':
         return OrderStatus.pickedUp;
       case 'CANCELLED':
         return OrderStatus.cancelled;
@@ -119,6 +152,8 @@ extension OrderStatusX on OrderStatus {
       case OrderStatus.confirmed:
       case OrderStatus.preparing:
         return 'Ready';
+      case OrderStatus.ready:
+        return 'Collected';
       default:
         return null;
     }
@@ -180,8 +215,12 @@ class Order {
     required this.status,
     required this.tokenNumber,
     required this.createdAt,
+    this.note = '',
     this.student,
+    this.cancelledBy,
+    this.cancelledAt,
     this.hasFeedback = false,
+    this.feedback,
   });
 
   final String id;
@@ -193,8 +232,12 @@ class Order {
   final OrderStatus status;
   final String tokenNumber;
   final DateTime createdAt;
+  final String note;
   final OrderStudent? student;
+  final String? cancelledBy;
+  final DateTime? cancelledAt;
   final bool hasFeedback;
+  final SubmittedFeedback? feedback;
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
@@ -210,10 +253,16 @@ class Order {
       tokenNumber: json['tokenNumber'] as String? ?? '',
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
+      note: json['note'] as String? ?? '',
       student: json['student'] != null
           ? OrderStudent.fromJson(json['student'] as Map<String, dynamic>)
           : null,
+      cancelledBy: json['cancelledBy'] as String?,
+      cancelledAt: DateTime.tryParse(json['cancelledAt'] as String? ?? ''),
       hasFeedback: json['hasFeedback'] as bool? ?? false,
+      feedback: json['feedback'] != null
+          ? SubmittedFeedback.fromJson(json['feedback'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -221,6 +270,7 @@ class Order {
     OrderStatus? status,
     PaymentStatus? paymentStatus,
     bool? hasFeedback,
+    SubmittedFeedback? feedback,
   }) {
     return Order(
       id: id,
@@ -233,7 +283,23 @@ class Order {
       tokenNumber: tokenNumber,
       createdAt: createdAt,
       student: student,
+      cancelledBy: cancelledBy,
       hasFeedback: hasFeedback ?? this.hasFeedback,
+      feedback: feedback ?? this.feedback,
+    );
+  }
+}
+
+class SubmittedFeedback {
+  const SubmittedFeedback({required this.rating, required this.review});
+
+  final int rating;
+  final String review;
+
+  factory SubmittedFeedback.fromJson(Map<String, dynamic> json) {
+    return SubmittedFeedback(
+      rating: (json['rating'] as num?)?.toInt() ?? 0,
+      review: json['review'] as String? ?? '',
     );
   }
 }
@@ -247,6 +313,8 @@ class CartItem {
     required this.imageUrl,
     required this.isVeg,
     required this.available,
+    this.categoryId = '',
+    this.categoryName = '',
   });
 
   final String menuItemId;
@@ -256,6 +324,8 @@ class CartItem {
   final String imageUrl;
   final bool isVeg;
   final bool available;
+  final String categoryId;
+  final String categoryName;
 
   CartItem copyWith({int? quantity}) {
     return CartItem(
@@ -266,6 +336,8 @@ class CartItem {
       imageUrl: imageUrl,
       isVeg: isVeg,
       available: available,
+      categoryId: categoryId,
+      categoryName: categoryName,
     );
   }
 }

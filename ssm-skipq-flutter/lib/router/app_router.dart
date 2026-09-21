@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -8,10 +7,27 @@ import '../models/order.dart';
 import '../screens/manager/manager_login_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/student/student_checkout_screen.dart';
-import '../screens/student/student_login_screen.dart';
 import '../screens/student/student_order_confirmation_screen.dart';
+import '../screens/student/student_order_history_screen.dart';
+import '../screens/student/student_track_order_screen.dart';
 import '../widgets/manager_shell.dart';
 import '../widgets/student_shell.dart';
+
+int studentTabFromQuery(String? tab) {
+  switch (tab) {
+    case 'cart':
+    case 'orders':
+      return 1;
+    case 'track':
+      return 2;
+    case 'profile':
+      return 3;
+    default:
+      return 0;
+  }
+}
+
+int managerTabFromQuery(String? tab) => tab == 'orders' ? 1 : 0;
 
 GoRouter createRouter(AppServices services, AuthProvider auth) {
   return GoRouter(
@@ -22,12 +38,10 @@ GoRouter createRouter(AppServices services, AuthProvider auth) {
       if (auth.isLoading) return null;
 
       final loc = state.matchedLocation;
-      final isPublic = loc == '/' ||
-          loc == '/student/login' ||
-          loc == '/manager/login';
+      final isPublic = loc == '/' || loc == '/manager/login';
 
       if (auth.user == null && !isPublic) {
-        return '/student/login';
+        return '/';
       }
       if (auth.isStudent && loc.startsWith('/manager')) {
         return '/student';
@@ -39,12 +53,29 @@ GoRouter createRouter(AppServices services, AuthProvider auth) {
     },
     routes: [
       GoRoute(path: '/', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/student/login', builder: (_, __) => const StudentLoginScreen()),
-      GoRoute(path: '/manager/login', builder: (_, __) => const ManagerLoginScreen()),
+      GoRoute(path: '/student/login', redirect: (_, __) => '/'),
+      GoRoute(
+          path: '/manager/login',
+          builder: (_, __) => const ManagerLoginScreen()),
       GoRoute(
         path: '/student',
-        builder: (_, __) => StudentShell(
+        builder: (_, state) => StudentShell(
           menuService: services.menuService,
+          ordersService: services.ordersService,
+          socketService: services.socketService,
+          feedbackService: services.feedbackService,
+          paymentService: services.paymentService,
+          initialTab: studentTabFromQuery(state.uri.queryParameters['tab']),
+        ),
+      ),
+      GoRoute(
+        path: '/student/cart',
+        redirect: (_, __) => '/student?tab=cart',
+      ),
+      GoRoute(
+        path: '/student/order-history',
+        builder: (_, __) => StudentOrderHistoryScreen(
+          ordersService: services.ordersService,
         ),
       ),
       GoRoute(
@@ -55,13 +86,12 @@ GoRouter createRouter(AppServices services, AuthProvider auth) {
         ),
       ),
       GoRoute(
-        path: '/student/order-confirmation',
+        path: '/student/order-confirmation/:orderId',
         builder: (_, state) {
+          final orderId = state.pathParameters['orderId']!;
           final order = state.extra as Order?;
-          if (order == null) {
-            return const Scaffold(body: Center(child: Text('Order not found')));
-          }
           return StudentOrderConfirmationScreen(
+            orderId: orderId,
             initialOrder: order,
             ordersService: services.ordersService,
             socketService: services.socketService,
@@ -69,12 +99,29 @@ GoRouter createRouter(AppServices services, AuthProvider auth) {
         },
       ),
       GoRoute(
+        path: '/student/track-order/:orderId',
+        builder: (_, state) {
+          final orderId = state.pathParameters['orderId']!;
+          final order = state.extra as Order?;
+          return StudentTrackOrderScreen(
+            orderId: orderId,
+            initialOrder: order,
+            ordersService: services.ordersService,
+            socketService: services.socketService,
+            feedbackService: services.feedbackService,
+            showBottomNavigation: true,
+          );
+        },
+      ),
+      GoRoute(
         path: '/manager',
-        builder: (_, __) => ManagerShell(
+        builder: (_, state) => ManagerShell(
           ordersService: services.ordersService,
           menuService: services.menuService,
           feedbackService: services.feedbackService,
           socketService: services.socketService,
+          superAdminService: services.superAdminService,
+          initialTab: managerTabFromQuery(state.uri.queryParameters['tab']),
         ),
       ),
     ],

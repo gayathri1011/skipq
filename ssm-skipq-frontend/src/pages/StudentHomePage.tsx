@@ -7,7 +7,7 @@ import type { Category, MenuItem, VegFilter } from '../types/menu';
 import FoodCard from '../components/FoodCard';
 import { FoodCardSkeletonGrid } from '../components/FoodCardSkeleton';
 import { EmptyState } from '../components/ui/UiStates';
-import { getCategoryIcon, getTimeGreeting } from '../utils/greeting';
+import { getCategoryIconByKey, getTimeGreeting } from '../utils/greeting';
 import styles from './StudentHomePage.module.css';
 
 const StudentHomePage = () => {
@@ -25,22 +25,38 @@ const StudentHomePage = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadMenu = async () => {
       try {
         const [cats, items] = await Promise.all([
           fetchCategories(),
           fetchMenuItems(),
         ]);
+        if (cancelled) return;
         setCategories(cats);
         setMenuItems(items);
+        setError('');
       } catch {
-        setError('Unable to load menu. Please try again.');
+        if (!cancelled) setError('Unable to load menu. Please try again.');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    loadMenu();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void loadMenu();
+    };
+
+    void loadMenu();
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, []);
 
   const filteredItems = useMemo(() => {
@@ -52,8 +68,6 @@ const StudentHomePage = () => {
 
     if (vegFilter === 'veg') {
       result = result.filter((item) => item.isVeg);
-    } else if (vegFilter === 'nonveg') {
-      result = result.filter((item) => !item.isVeg);
     }
 
     const query = searchQuery.trim().toLowerCase();
@@ -123,14 +137,14 @@ const StudentHomePage = () => {
 
       {showFilters && (
         <div className={styles.filterPanel}>
-          {(['all', 'veg', 'nonveg'] as VegFilter[]).map((f) => (
+          {(['all', 'veg'] as VegFilter[]).map((f) => (
             <button
               key={f}
               type="button"
               className={`${styles.filterChip} ${vegFilter === f ? styles.filterChipActive : ''}`}
               onClick={() => setVegFilter(f)}
             >
-              {f === 'all' ? 'All' : f === 'veg' ? 'Veg' : 'Non-Veg'}
+              {f === 'all' ? 'All' : 'Veg'}
             </button>
           ))}
         </div>
@@ -148,7 +162,7 @@ const StudentHomePage = () => {
           <span className={styles.categoryLabel}>All</span>
         </button>
         {categories.map((cat) => {
-          const Icon = getCategoryIcon(cat.name);
+          const Icon = getCategoryIconByKey(cat.icon);
           return (
             <button
               key={cat._id}

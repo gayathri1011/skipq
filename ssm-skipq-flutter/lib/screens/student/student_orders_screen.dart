@@ -104,8 +104,12 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$skipped item(s) skipped — no longer available.')),
         );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Items added to cart')),
+        );
       }
-      if (mounted) context.go('/student/cart');
+      if (mounted) context.go('/student?tab=cart');
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,58 +143,117 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
                           final order = _orders[index];
                           return Card(
                             margin: const EdgeInsets.only(bottom: 12),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(order.tokenNumber,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: 18)),
-                                      OrderStatusBadge(status: order.status),
-                                    ],
-                                  ),
-                                  Text(formatIstDateTime(order.createdAt),
-                                      style: const TextStyle(color: AppTheme.textSecondary)),
-                                  const SizedBox(height: 8),
-                                  ...order.items.map(
-                                    (item) => Text('${item.name} × ${item.quantity}'),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text('₹${order.total} · ${order.paymentMethod.label}'),
-                                  const SizedBox(height: 12),
-                                  if (order.status != OrderStatus.cancelled)
-                                    OutlinedButton.icon(
-                                      onPressed: () => _reorder(order),
-                                      icon: const Icon(Icons.refresh),
-                                      label: const Text('Reorder'),
+                            child: InkWell(
+                              onTap: () => context.go('/student/track-order/${order.id}'),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(order.tokenNumber,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 18)),
+                                        OrderStatusBadge(status: order.status),
+                                      ],
                                     ),
-                                  if (_needsFeedback(order)) ...[
+                                    Text(formatIstDateTime(order.createdAt),
+                                        style: const TextStyle(color: AppTheme.textSecondary)),
+                                    const SizedBox(height: 8),
+                                    ...order.items.map(
+                                      (item) => Text('${item.name} × ${item.quantity}'),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text('₹${order.total} · ${order.paymentMethod.label}'),
                                     const SizedBox(height: 12),
-                                    OrderFeedbackForm(
-                                      orderId: order.id,
-                                      tokenNumber: order.tokenNumber,
-                                      feedbackService: widget.feedbackService,
-                                      onSubmitted: () {
-                                        setState(() {
-                                          _submittedFeedback.add(order.id);
-                                          _orders[index] =
-                                              order.copyWith(hasFeedback: true);
-                                        });
-                                      },
-                                    ),
+                                    if (order.status != OrderStatus.cancelled)
+                                      OutlinedButton.icon(
+                                        onPressed: () => _reorder(order),
+                                        icon: const Icon(Icons.refresh),
+                                        label: const Text('Reorder'),
+                                      ),
+                                    if (_needsFeedback(order)) ...[
+                                      const SizedBox(height: 12),
+                                      OrderFeedbackForm(
+                                        orderId: order.id,
+                                        tokenNumber: order.tokenNumber,
+                                        feedbackService: widget.feedbackService,
+                                        onSubmitted: (feedback) {
+                                          setState(() {
+                                            _submittedFeedback.add(order.id);
+                                            _orders[index] =
+                                                order.copyWith(
+                                                  hasFeedback: true,
+                                                  feedback: SubmittedFeedback(
+                                                    rating: feedback.rating,
+                                                    review: feedback.review,
+                                                  ),
+                                                );
+                                          });
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text('Feedback submitted')),
+                                            );
+                                        },
+                                      ),
+                                    ] else if (order.status == OrderStatus.pickedUp &&
+                                        (order.hasFeedback || order.feedback != null)) ...[
+                                      const SizedBox(height: 12),
+                                      _FeedbackConfirmation(feedback: order.feedback),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                           );
                         },
                       ),
                     ),
+    );
+  }
+}
+
+class _FeedbackConfirmation extends StatelessWidget {
+  const _FeedbackConfirmation({required this.feedback});
+
+  final SubmittedFeedback? feedback;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.bgSubtle,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Thanks for your feedback!',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          if (feedback != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: List.generate(
+                5,
+                (index) => Icon(
+                  index < feedback!.rating ? Icons.star : Icons.star_border,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
+              ),
+            ),
+            if (feedback!.review.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(feedback!.review),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }

@@ -27,6 +27,7 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
   bool _loading = true;
   String? _error;
   String? _actionLoadingId;
+  String _statusFilter = 'all';
 
   @override
   void initState() {
@@ -67,8 +68,13 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
     try {
       final updated = await widget.ordersService.advanceStatus(orderId);
       _upsertOrder(updated);
-    } catch (_) {
-      setState(() => _error = 'Unable to update order status.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Order status updated')),
+        );
+      }
+    } catch (e) {
+      setState(() => _error = 'Unable to update order status: ${e.toString()}');
     } finally {
       setState(() => _actionLoadingId = null);
     }
@@ -78,9 +84,14 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
     if (order.paymentStatus == PaymentStatus.paid) return;
     setState(() => _actionLoadingId = order.id);
     try {
-      final updated =
-          await widget.ordersService.updatePayment(order.id, PaymentStatus.paid);
+      final updated = await widget.ordersService
+          .updatePayment(order.id, PaymentStatus.paid);
       _upsertOrder(updated);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment marked as received')),
+        );
+      }
     } catch (_) {
       setState(() => _error = 'Unable to update payment status.');
     } finally {
@@ -93,13 +104,28 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
+  List<Order> get _filteredOrders {
+    return _orders.where((order) => isTodayIst(order.createdAt)).where((order) {
+      switch (_statusFilter) {
+        case 'pending':
+          return order.status == OrderStatus.pending;
+        case 'completed':
+          return order.status == OrderStatus.pickedUp;
+        case 'cancelled':
+          return order.status == OrderStatus.cancelled;
+        default:
+          return true;
+      }
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final todayOrders =
-        _orders.where((o) => isTodayIst(o.createdAt)).toList();
-    final active = todayOrders
+    final visibleOrders = _filteredOrders;
+    final active = visibleOrders
         .where((o) =>
-            o.status != OrderStatus.pickedUp && o.status != OrderStatus.cancelled)
+            o.status != OrderStatus.pickedUp &&
+            o.status != OrderStatus.cancelled)
         .length;
 
     return RefreshIndicator(
@@ -107,7 +133,25 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('$active active · ${todayOrders.length} today'),
+          Text('Today · $active active · ${visibleOrders.length} orders'),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: ['all', 'pending', 'completed', 'cancelled']
+                  .map((status) => Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: ChoiceChip(
+                          label: Text(_statusLabel(status)),
+                          selected: _statusFilter == status,
+                          onSelected: (_) =>
+                              setState(() => _statusFilter = status),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
@@ -115,13 +159,13 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
             )
           else if (_error != null)
             Text(_error!, style: const TextStyle(color: AppTheme.error))
-          else if (todayOrders.isEmpty)
+          else if (visibleOrders.isEmpty)
             const Padding(
               padding: EdgeInsets.all(24),
-              child: Text('No orders yet today. New orders appear instantly.'),
+              child: Text('No matching orders found for today.'),
             )
           else
-            ...todayOrders.map((order) {
+            ...visibleOrders.map((order) {
               final action = order.status.managerAction;
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -140,12 +184,40 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      ...order.items.map((item) => Text('${item.name} × ${item.quantity}')),
+                      Text(
+                        order.status == OrderStatus.cancelled
+                            ? 'Cancelled by student · ${formatIstDateTime(order.createdAt)}'
+                            : formatIstDateTime(order.createdAt),
+                        style: const TextStyle(color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      ...order.items.map(
+                          (item) => Text('${item.name} × ${item.quantity}')),
+                      if (order.note.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryMuted,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            order.note.trim(),
+                            style: const TextStyle(
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Text('₹${order.total} · ${order.paymentMethod.label} · '
                           '${order.paymentStatus == PaymentStatus.paid ? 'Paid' : 'Pending'}'),
                       if (order.student != null)
-                        Text('${order.student!.name} · ${order.student!.mobile}'),
+                        Text(
+                            '${order.student!.name} · ${order.student!.mobile}'),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
@@ -156,9 +228,11 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
                               onPressed: _actionLoadingId == order.id
                                   ? null
                                   : () => _advance(order.id),
-                              child: Text(_actionLoadingId == order.id ? '…' : action),
+                              child: Text(
+                                  _actionLoadingId == order.id ? '…' : action),
                             ),
-                          if (order.paymentMethod == PaymentMethod.payAtCounter &&
+                          if (order.paymentMethod ==
+                                  PaymentMethod.payAtCounter &&
                               order.paymentStatus == PaymentStatus.pending)
                             OutlinedButton(
                               onPressed: _actionLoadingId == order.id
@@ -166,7 +240,8 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
                                   : () => _markPaymentReceived(order),
                               child: const Text('Mark Payment Received'),
                             ),
-                          if (order.paymentMethod == PaymentMethod.payAtCounter &&
+                          if (order.paymentMethod ==
+                                  PaymentMethod.payAtCounter &&
                               order.paymentStatus == PaymentStatus.paid)
                             const OutlinedButton(
                               onPressed: null,
@@ -188,5 +263,18 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
         ],
       ),
     );
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return 'All';
+    }
   }
 }

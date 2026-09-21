@@ -8,6 +8,17 @@ const categorySchema = new mongoose.Schema({
     trim: true,
     maxlength: 100,
   },
+  icon: {
+    type: String,
+    trim: true,
+    default: 'restaurant',
+    maxlength: 50,
+  },
+  sortOrder: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
 });
 
 const Category = mongoose.model('Category', categorySchema);

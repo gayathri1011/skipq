@@ -11,6 +11,7 @@ class AppScaffold extends StatelessWidget {
     this.showBack = false,
     this.backTo,
     this.actions,
+    this.bottomNavigationBar,
   });
 
   final String title;
@@ -18,6 +19,7 @@ class AppScaffold extends StatelessWidget {
   final bool showBack;
   final String? backTo;
   final List<Widget>? actions;
+  final Widget? bottomNavigationBar;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +41,7 @@ class AppScaffold extends StatelessWidget {
         actions: actions,
       ),
       body: SafeArea(child: body),
+      bottomNavigationBar: bottomNavigationBar,
     );
   }
 }

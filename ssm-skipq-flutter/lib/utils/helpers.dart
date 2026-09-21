@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../models/order.dart';
 
 class StudentAuthValidation {
@@ -54,5 +55,34 @@ String? studentStatusToastTitle(OrderStatus status) {
       return 'Ready for Pickup';
     default:
       return null;
+  }
+}
+
+IconData getCategoryIcon(String categoryName) {
+  switch (categoryName) {
+    case "All":
+      return Icons.restaurant_menu;
+    case "Rice Varieties":
+      return Icons.rice_bowl;
+    case "Parotta":
+      return Icons.local_pizza;
+    case "Fried Rice":
+      return Icons.ramen_dining;
+    case "Chapati":
+      return Icons.bakery_dining;
+    case "Side Dishes":
+      return Icons.tapas;
+    case "Gravies":
+      return Icons.soup_kitchen;
+    case "Puffs":
+      return Icons.cookie;
+    case "Snacks":
+      return Icons.fastfood;
+    case "Desserts":
+      return Icons.cake;
+    case "Noodles":
+      return Icons.ramen_dining;
+    default:
+      return Icons.restaurant;
   }
 }

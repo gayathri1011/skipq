@@ -192,7 +192,19 @@ const StudentOrdersPage = () => {
         {!isLoading && !error && orders.length > 0 && (
           <ul className={styles.list}>
             {orders.map((order) => (
-              <li key={order.id} className={styles.card}>
+              <li
+                key={order.id}
+                className={styles.card}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/student/track-order/${order.id}`, { state: { order } })}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    navigate(`/student/track-order/${order.id}`, { state: { order } });
+                  }
+                }}
+              >
                 <div className={styles.cardHeader}>
                   <div>
                     <span className={styles.token}>{order.tokenNumber}</span>
@@ -223,7 +235,10 @@ const StudentOrdersPage = () => {
                   <button
                     type="button"
                     className={styles.reorderBtn}
-                    onClick={() => handleReorder(order)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleReorder(order);
+                    }}
                     disabled={reorderingId === order.id}
                   >
                     <RotateCcw size={16} />
@@ -232,11 +247,13 @@ const StudentOrdersPage = () => {
                 )}
 
                 {needsFeedback(order) && (
-                  <OrderFeedbackForm
-                    orderId={order.id}
-                    tokenNumber={order.tokenNumber}
-                    onSubmitted={() => markFeedbackSubmitted(order.id)}
-                  />
+                  <div onClick={(event) => event.stopPropagation()}>
+                    <OrderFeedbackForm
+                      orderId={order.id}
+                      tokenNumber={order.tokenNumber}
+                      onSubmitted={() => markFeedbackSubmitted(order.id)}
+                    />
+                  </div>
                 )}
 
                 {order.status === 'PICKED_UP' &&

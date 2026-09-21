@@ -11,7 +11,7 @@ import styles from './ManagerBottomNav.module.css';
 const navItems = [
   { to: '/manager', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/manager/orders', label: 'Orders', icon: ClipboardList, end: false },
-  { to: '/manager/menu', label: 'Menu', icon: UtensilsCrossed, end: false },
+  { to: '/manager/menu', label: 'Master', icon: UtensilsCrossed, end: false },
   {
     to: '/manager/feedback',
     label: 'Feedback',

@@ -16,12 +16,50 @@ const STATUS_FLOW = {
   PENDING: 'CONFIRMED',
   CONFIRMED: 'READY',
   PREPARING: 'READY',
+  READY: 'PICKED_UP',
 };
 
 const STATUS_ACTION_LABELS = {
   PENDING: 'Accept',
   CONFIRMED: 'Ready',
   PREPARING: 'Ready',
+  READY: 'Collected',
+};
+
+const getDateRange = (range, customStart, customEnd) => {
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  let start = new Date(startOfToday);
+  let end = new Date(now);
+
+  switch (range) {
+    case 'week':
+      start.setDate(start.getDate() - 6);
+      break;
+    case 'month':
+      start.setMonth(start.getMonth() - 1);
+      break;
+    case 'year':
+      start.setFullYear(start.getFullYear() - 1);
+      break;
+    case 'custom':
+      if (customStart) {
+        start = new Date(customStart);
+      }
+      if (customEnd) {
+        end = new Date(customEnd);
+        end.setHours(23, 59, 59, 999);
+      }
+      break;
+    case 'day':
+    default:
+      start = new Date(startOfToday);
+      break;
+  }
+
+  return { start, end };
 };
 
 export const formatOrder = (order) => ({
@@ -38,8 +76,11 @@ export const formatOrder = (order) => ({
   paymentMethod: order.paymentMethod,
   paymentStatus: order.paymentStatus,
   status: order.status,
+  cancelledBy: order.cancelledBy,
+  cancelledAt: order.cancelledAt,
   tokenNumber: order.tokenNumber,
   createdAt: order.createdAt,
+  note: order.note ?? '',
 });
 
 const emitOrderUpdate = (req, order) => {
@@ -62,8 +103,9 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    const { items, paymentMethod } = req.body;
+    const { items, paymentMethod, note } = req.body;
     const studentId = req.user.id;
+    const trimmedNote = typeof note === 'string' ? note.trim() : '';
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
@@ -178,6 +220,7 @@ export const createOrder = async (req, res) => {
             paymentStatus,
             status: 'PENDING',
             tokenNumber,
+            note: trimmedNote,
           },
         ],
         { session },
@@ -242,21 +285,19 @@ export const createOrder = async (req, res) => {
 export const getMyOrders = async (req, res) => {
   try {
     const studentId = req.user.id;
-    const todayStart = getTodayStartIst();
 
     const [orders, feedbackRows] = await Promise.all([
-      Order.find({
-        studentId,
-        createdAt: { $gte: todayStart },
-        status: { $nin: ['PICKED_UP', 'CANCELLED'] },
-      })
+      Order.find({ studentId })
         .sort({ createdAt: -1 })
         .lean(),
-      Feedback.find({ studentId }).select('orderId').lean(),
+      Feedback.find({ studentId }).select('orderId rating review').lean(),
     ]);
 
     const feedbackOrderIds = new Set(
       feedbackRows.map((row) => row.orderId.toString()),
+    );
+    const feedbackByOrderId = new Map(
+      feedbackRows.map((row) => [row.orderId.toString(), row]),
     );
 
     return res.json({
@@ -272,7 +313,14 @@ export const getMyOrders = async (req, res) => {
           status: order.status,
           tokenNumber: order.tokenNumber,
           createdAt: order.createdAt,
+          note: order.note ?? '',
           hasFeedback: feedbackOrderIds.has(order._id.toString()),
+          feedback: feedbackByOrderId.has(order._id.toString())
+            ? {
+                rating: feedbackByOrderId.get(order._id.toString()).rating,
+                review: feedbackByOrderId.get(order._id.toString()).review ?? '',
+              }
+            : null,
         })),
       },
     });
@@ -285,11 +333,64 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
+export const getMyOrderById = async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+      studentId: req.user.id,
+    }).lean();
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    const hasFeedback = await Feedback.exists({
+      orderId: order._id,
+      studentId: req.user.id,
+    });
+    const feedback = hasFeedback
+      ? await Feedback.findOne({
+          orderId: order._id,
+          studentId: req.user.id,
+        })
+          .select('rating review')
+          .lean()
+      : null;
+
+    return res.json({
+      success: true,
+      data: {
+        order: {
+          ...formatOrder(order),
+          hasFeedback: Boolean(hasFeedback),
+          feedback: feedback
+            ? { rating: feedback.rating, review: feedback.review ?? '' }
+            : null,
+        },
+      },
+    });
+  } catch (error) {
+    if (error instanceof mongoose.Error.CastError) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    console.error('Get student order error:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to fetch order',
+    });
+  }
+};
+
 export const getManagerOrders = async (_req, res) => {
   try {
-    const todayStart = getTodayStartIst();
-
-    const orders = await Order.find({ createdAt: { $gte: todayStart } })
+    const orders = await Order.find()
       .populate('studentId', 'name mobile')
       .sort({ createdAt: -1 })
       .lean();
@@ -307,6 +408,76 @@ export const getManagerOrders = async (_req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Unable to fetch orders',
+    });
+  }
+};
+
+export const getOrderAnalytics = async (req, res) => {
+  try {
+    const range = req.query.range || 'day';
+    const { start, end } = getDateRange(
+      Array.isArray(range) ? range[0] : range,
+      req.query.startDate,
+      req.query.endDate,
+    );
+
+    const orders = await Order.find({
+      createdAt: { $gte: start, $lte: end },
+    }).lean();
+
+    let totalRevenue = 0;
+    let completedOrders = 0;
+    const itemMap = new Map();
+
+    for (const order of orders) {
+      if (order.status === 'PICKED_UP') {
+        totalRevenue += Number(order.total || 0);
+        completedOrders += 1;
+      }
+
+      for (const item of order.items || []) {
+        const itemName = item.name || 'Unknown';
+        const current = itemMap.get(itemName) || {
+          name: itemName,
+          quantity: 0,
+          revenue: 0,
+        };
+
+        current.quantity += Number(item.quantity || 0);
+        current.revenue += Number((item.price || 0) * (item.quantity || 0));
+        itemMap.set(itemName, current);
+      }
+    }
+
+    const topItems = [...itemMap.values()]
+      .sort((a, b) => {
+        const quantityOrder = b.quantity - a.quantity;
+        if (quantityOrder !== 0) return quantityOrder;
+        return b.revenue - a.revenue;
+      })
+      .slice(0, 5)
+      .map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        revenue: Number(item.revenue.toFixed(2)),
+      }));
+
+    return res.json({
+      success: true,
+      data: {
+        analytics: {
+          totalOrders: orders.length,
+          totalRevenue: Number(totalRevenue.toFixed(2)),
+          completedOrders,
+          topItems,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get order analytics error:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to calculate analytics',
     });
   }
 };
@@ -345,6 +516,51 @@ export const advanceOrderStatus = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Unable to update order status',
+    });
+  }
+};
+
+export const cancelOrder = async (req, res) => {
+  try {
+    const order = await Order.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        studentId: req.user.id,
+        status: 'PENDING',
+      },
+      { $set: { status: 'CANCELLED', cancelledBy: 'STUDENT', cancelledAt: new Date() } },
+      { new: true },
+    ).populate('studentId', 'name mobile');
+
+    if (order) {
+      emitOrderUpdate(req, order);
+      return res.json({
+        success: true,
+        data: { order: formatOrder(order) },
+      });
+    }
+
+    const existing = await Order.findOne({
+      _id: req.params.id,
+      studentId: req.user.id,
+    }).select('status');
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    return res.status(409).json({
+      success: false,
+      message: 'Only pending orders can be cancelled.',
+    });
+  } catch (error) {
+    console.error('Cancel order error:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to cancel order',
     });
   }
 };

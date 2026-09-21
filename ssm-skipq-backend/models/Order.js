@@ -67,10 +67,22 @@ const orderSchema = new mongoose.Schema(
       ],
       default: 'PENDING',
     },
+    cancelledBy: {
+      type: String,
+      enum: ['STUDENT'],
+    },
+    cancelledAt: {
+      type: Date,
+    },
     tokenNumber: {
       type: String,
       required: [true, 'Token number is required'],
       trim: true,
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: '',
     },
     razorpayOrderId: {
       type: String,

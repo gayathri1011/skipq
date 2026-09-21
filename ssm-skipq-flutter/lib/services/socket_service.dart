@@ -36,7 +36,13 @@ class SocketService {
   }
 
   void joinStudentRoom() {
-    _socket?.emit('join:student');
+    final socket = _socket;
+    if (socket == null) return;
+    if (socket.connected) {
+      socket.emit('join:student');
+    } else {
+      socket.once('connect', (_) => socket.emit('join:student'));
+    }
   }
 
   void joinManagerRoom() {

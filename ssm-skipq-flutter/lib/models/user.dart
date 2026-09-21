@@ -22,6 +22,9 @@ sealed class AppUser {
       id: json['id']?.toString() ?? '',
       name: json['name'] as String? ?? '',
       mobile: json['mobile'] as String? ?? '',
+      registerNumber: json['registerNumber'] as String? ?? '',
+      department: json['department'] as String? ?? '',
+      academicStream: json['academicStream'] as String? ?? '',
     );
   }
 }
@@ -41,9 +44,15 @@ class StudentUser extends AppUser {
     required super.id,
     required super.name,
     required this.mobile,
+    this.registerNumber = '',
+    this.department = '',
+    this.academicStream = '',
   }) : super(role: UserRole.student);
 
   final String mobile;
+  final String registerNumber;
+  final String department;
+  final String academicStream;
 }
 
 class ManagerUser extends AppUser {

@@ -13,6 +13,8 @@ import {
 } from '../services/settings';
 import { fetchManagerOrders } from '../services/managerOrders';
 import { joinManagerRoom } from '../services/socket';
+import { fetchDashboardAnalytics } from '../services/analytics';
+import type { DashboardAnalytics } from '../types/analytics';
 import type { Order } from '../types/order';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import { LoadingSpinner } from '../components/ui/UiStates';
@@ -47,6 +49,18 @@ const ManagerDashboardPage = () => {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsReady, setSettingsReady] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<DashboardAnalytics>({
+    totalOrders: 0,
+    totalRevenue: 0,
+    completedOrders: 0,
+    topItems: [],
+  });
+  const [analyticsRange, setAnalyticsRange] = useState<
+    'day' | 'week' | 'month' | 'year' | 'custom'
+  >('day');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   const loadOrders = useCallback(async () => {
     try {
@@ -56,6 +70,24 @@ const ManagerDashboardPage = () => {
       setOrdersLoading(false);
     }
   }, []);
+
+  const loadAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await fetchDashboardAnalytics({
+        range: analyticsRange,
+        ...(analyticsRange === 'custom' && customStart
+          ? { startDate: customStart }
+          : {}),
+        ...(analyticsRange === 'custom' && customEnd
+          ? { endDate: customEnd }
+          : {}),
+      });
+      setAnalytics(data);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [analyticsRange, customStart, customEnd]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +109,13 @@ const ManagerDashboardPage = () => {
       cancelled = true;
     };
   }, [loadOrders]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadAnalytics();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadAnalytics]);
 
   useEffect(() => {
     setHeaderRefresh(loadOrders);
@@ -174,6 +213,83 @@ const ManagerDashboardPage = () => {
           </article>
         </div>
       )}
+
+      <section className={styles.analyticsCard}>
+        <div className={styles.analyticsHeader}>
+          <div>
+            <h2 className={styles.cardTitle}>Analytics</h2>
+            <p className={styles.cardHint}>
+              Review sales performance by date range.
+            </p>
+          </div>
+          {analyticsLoading && <LoadingSpinner label="Loading analytics…" />}
+        </div>
+        <div className={styles.rangeControls}>
+          {(['day', 'week', 'month', 'year', 'custom'] as const).map(
+            (range) => (
+              <button
+                key={range}
+                type="button"
+                className={`${styles.rangeBtn} ${analyticsRange === range ? styles.rangeBtnActive : ''}`}
+                onClick={() => setAnalyticsRange(range)}
+              >
+                {range[0].toUpperCase() + range.slice(1)}
+              </button>
+            ),
+          )}
+        </div>
+        {analyticsRange === 'custom' && (
+          <div className={styles.customDates}>
+            <label className={styles.timeField}>
+              <span>Start date</span>
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+              />
+            </label>
+            <label className={styles.timeField}>
+              <span>End date</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+              />
+            </label>
+          </div>
+        )}
+        <div className={styles.analyticsGrid}>
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>Orders</span>
+            <span className={styles.statValue}>{analytics.totalOrders}</span>
+          </article>
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>Revenue</span>
+            <span className={styles.statValue}>₹{analytics.totalRevenue}</span>
+          </article>
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>Completed</span>
+            <span className={styles.statValue}>
+              {analytics.completedOrders}
+            </span>
+          </article>
+        </div>
+        <h3 className={styles.topItemsTitle}>Top 5 Best Sellers</h3>
+        {analytics.topItems.length === 0 ? (
+          <p className={styles.cardHint}>No sales data for this range.</p>
+        ) : (
+          <ol className={styles.topItemsList}>
+            {analytics.topItems.map((item) => (
+              <li key={item.name}>
+                <span>
+                  {item.name} · {item.quantity} sold
+                </span>
+                <strong>₹{item.revenue}</strong>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
 
       <section className={styles.settingsCard}>
         <h2 className={styles.cardTitle}>Ordering Window</h2>

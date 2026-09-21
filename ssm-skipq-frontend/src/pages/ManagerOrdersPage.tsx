@@ -16,6 +16,7 @@ const STATUS_ACTION: Partial<Record<OrderStatus, string>> = {
   PENDING: 'Accept',
   CONFIRMED: 'Ready',
   PREPARING: 'Ready',
+  READY: 'Collected',
 };
 
 const paymentMethodLabel = (method: Order['paymentMethod']) => {
@@ -186,6 +187,10 @@ const ManagerOrdersPage = () => {
                     {order.paymentStatus === 'PAID' ? 'Paid' : 'Pending'}
                   </span>
                 </div>
+
+                {order.status === 'CANCELLED' && (
+                  <p className={styles.student}>Cancelled by student</p>
+                )}
 
                 {order.student && (
                   <p className={styles.student}>

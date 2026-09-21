@@ -12,10 +12,10 @@ class FoodCollage extends StatefulWidget {
 class _FoodCollageState extends State<FoodCollage>
     with TickerProviderStateMixin {
   static const _foods = [
-    _FoodItem(AppAssets.collageFood1, -3, 0.0, 5.2, 1),
-    _FoodItem(AppAssets.collageFood2, 2, 0.8, 5.9, 3),
-    _FoodItem(AppAssets.collageFood3, -2, 1.6, 6.3, 2),
-    _FoodItem(AppAssets.collageFood4, 3, 2.4, 5.6, 4),
+    _FoodItem(AppAssets.collageFood1, -3, 0),
+    _FoodItem(AppAssets.collageFood2, 2, 300),
+    _FoodItem(AppAssets.collageFood3, -2, 600),
+    _FoodItem(AppAssets.collageFood4, 3, 900),
   ];
 
   late final List<AnimationController> _controllers;
@@ -27,20 +27,15 @@ class _FoodCollageState extends State<FoodCollage>
         .map(
           (food) => AnimationController(
             vsync: this,
-            duration: Duration(milliseconds: (food.duration * 1000).round()),
-          )..repeat(reverse: true),
+            duration: const Duration(milliseconds: 2400),
+          ),
         )
         .toList();
 
     for (var i = 0; i < _foods.length; i++) {
-      if (_foods[i].delay > 0) {
-        Future.delayed(Duration(milliseconds: (_foods[i].delay * 1000).round()),
-            () {
-          if (mounted) _controllers[i].forward(from: 0);
-        });
-      } else {
-        _controllers[i].forward(from: 0);
-      }
+      Future.delayed(Duration(milliseconds: _foods[i].delay), () {
+        if (mounted) _controllers[i].repeat(reverse: true);
+      });
     }
   }
 
@@ -54,7 +49,8 @@ class _FoodCollageState extends State<FoodCollage>
 
   @override
   Widget build(BuildContext context) {
-    final itemWidth = (MediaQuery.sizeOf(context).width * 0.21).clamp(76.0, 104.0);
+    final itemWidth =
+        (MediaQuery.sizeOf(context).width * 0.22).clamp(82.0, 112.0);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
@@ -63,7 +59,7 @@ class _FoodCollageState extends State<FoodCollage>
         children: [
           for (var i = 0; i < _foods.length; i++)
             SizedBox(
-              width: i == 0 ? itemWidth : itemWidth * 0.72,
+              width: i == 0 ? itemWidth : itemWidth * 0.78,
               child: AnimatedBuilder(
                 animation: _controllers[i],
                 builder: (context, child) {
@@ -110,11 +106,9 @@ class _FoodCollageState extends State<FoodCollage>
 }
 
 class _FoodItem {
-  const _FoodItem(this.asset, this.rotate, this.delay, this.duration, this.zIndex);
+  const _FoodItem(this.asset, this.rotate, this.delay);
 
   final String asset;
   final double rotate;
-  final double delay;
-  final double duration;
-  final int zIndex;
+  final int delay;
 }

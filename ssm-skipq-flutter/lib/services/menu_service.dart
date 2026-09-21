@@ -9,7 +9,8 @@ class MenuService {
   final ApiClient _api;
 
   Future<List<Category>> fetchCategories() async {
-    final response = await _api.dio.get<Map<String, dynamic>>('/menu/categories');
+    final response =
+        await _api.dio.get<Map<String, dynamic>>('/menu/categories');
     final data = response.data?['data'] as Map<String, dynamic>?;
     return (data?['categories'] as List<dynamic>? ?? [])
         .map((e) => Category.fromJson(e as Map<String, dynamic>))
@@ -24,7 +25,41 @@ class MenuService {
         .toList();
   }
 
-  Future<({List<Category> categories, List<MenuItem> items})> fetchManagerMenu() async {
+  Future<Category> createCategory({
+    required String name,
+    required String icon,
+    required int sortOrder,
+  }) async {
+    final response = await _api.dio.post<Map<String, dynamic>>(
+      '/menu/categories',
+      data: {'name': name, 'icon': icon, 'sortOrder': sortOrder},
+    );
+    final category =
+        (response.data?['data'] as Map<String, dynamic>)['category'];
+    return Category.fromJson(category as Map<String, dynamic>);
+  }
+
+  Future<Category> updateCategory(
+    String id, {
+    required String name,
+    required String icon,
+    required int sortOrder,
+  }) async {
+    final response = await _api.dio.patch<Map<String, dynamic>>(
+      '/menu/categories/$id',
+      data: {'name': name, 'icon': icon, 'sortOrder': sortOrder},
+    );
+    final category =
+        (response.data?['data'] as Map<String, dynamic>)['category'];
+    return Category.fromJson(category as Map<String, dynamic>);
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await _api.dio.delete<void>('/menu/categories/$id');
+  }
+
+  Future<({List<Category> categories, List<MenuItem> items})>
+      fetchManagerMenu() async {
     final response =
         await _api.dio.get<Map<String, dynamic>>('/menu/manager/items');
     final data = response.data?['data'] as Map<String, dynamic>?;
@@ -65,8 +100,8 @@ class MenuService {
   }
 
   Future<MenuItem> toggleAvailability(String id) async {
-    final response =
-        await _api.dio.patch<Map<String, dynamic>>('/menu/items/$id/availability');
+    final response = await _api.dio
+        .patch<Map<String, dynamic>>('/menu/items/$id/availability');
     final item = (response.data?['data'] as Map<String, dynamic>)['item'];
     return MenuItem.fromJson(item as Map<String, dynamic>);
   }
