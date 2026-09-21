@@ -145,7 +145,7 @@ class _ManagerMenuScreenState extends State<ManagerMenuScreen> {
             keyboardType: TextInputType.number,
           ),
           DropdownButtonFormField<String>(
-            value: _categoryId,
+            initialValue: _categoryId,
             decoration: const InputDecoration(labelText: 'Category'),
             items: _categories
                 .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/assets.dart';
@@ -53,8 +52,8 @@ class _SplashScreenState extends State<SplashScreen>
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final displayFont = GoogleFonts.sora();
-    final bodyFont = GoogleFonts.inter();
+    const displayFont = TextStyle();
+    const bodyFont = TextStyle();
     final heroWidth =
         (MediaQuery.sizeOf(context).width * 0.72).clamp(220.0, 280.0);
 

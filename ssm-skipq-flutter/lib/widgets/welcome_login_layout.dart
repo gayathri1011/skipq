@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../config/assets.dart';
 import '../config/theme.dart';
@@ -26,8 +25,8 @@ class WelcomeLoginLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isStudent = variant == WelcomeLoginVariant.student;
-    final displayFont = GoogleFonts.sora();
-    final bodyFont = GoogleFonts.inter();
+    const displayFont = TextStyle();
+    const bodyFont = TextStyle();
 
     return Container(
       decoration: const BoxDecoration(

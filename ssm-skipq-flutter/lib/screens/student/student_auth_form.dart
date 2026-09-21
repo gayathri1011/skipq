@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/theme.dart';
@@ -86,7 +85,7 @@ class _StudentAuthFormState extends State<StudentAuthForm> {
 
   @override
   Widget build(BuildContext context) {
-    final displayFont = GoogleFonts.sora();
+    const displayFont = TextStyle();
     final nameError = StudentAuthValidation.nameError(_nameController.text);
     final mobileError =
         StudentAuthValidation.mobileError(_mobileController.text);
@@ -163,7 +162,7 @@ class _StudentAuthFormState extends State<StudentAuthForm> {
               ),
               child: Text(
                 _error!,
-                style: GoogleFonts.inter(fontSize: 14, color: AppTheme.error),
+                style: const TextStyle(fontSize: 14, color: AppTheme.error),
               ),
             ),
           ],
@@ -191,7 +190,7 @@ class _AuthModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = GoogleFonts.sora(
+    const labelStyle = TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.w500,
     );

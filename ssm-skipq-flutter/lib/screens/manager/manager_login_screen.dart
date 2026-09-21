@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../config/theme.dart';
@@ -55,7 +54,7 @@ class _ManagerLoginScreenState extends State<ManagerLoginScreen> {
       });
     }
 
-    final displayFont = GoogleFonts.sora();
+    const displayFont = TextStyle();
 
     return Scaffold(
       body: WelcomeLoginLayout(
@@ -66,7 +65,7 @@ class _ManagerLoginScreenState extends State<ManagerLoginScreen> {
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('Student? ', style: GoogleFonts.inter(color: AppTheme.textSecondary)),
+            const Text('Student? ', style: TextStyle(color: AppTheme.textSecondary)),
             TextButton(
               onPressed: () => context.go('/'),
               style: TextButton.styleFrom(
@@ -107,7 +106,7 @@ class _ManagerLoginScreenState extends State<ManagerLoginScreen> {
                 ),
                 child: Text(
                   _error!,
-                  style: GoogleFonts.inter(fontSize: 14, color: AppTheme.error),
+                  style: const TextStyle(fontSize: 14, color: AppTheme.error),
                 ),
               ),
             ],

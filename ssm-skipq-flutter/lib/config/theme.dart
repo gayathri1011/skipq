@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// SSM SkipQ brand theme — matches web app tokens.css
 class AppTheme {
@@ -20,8 +19,8 @@ class AppTheme {
   static const Color bgSubtle = Color(0xFFFAFAFA);
 
   static TextTheme get _textTheme {
-    final display = GoogleFonts.soraTextTheme();
-    final body = GoogleFonts.interTextTheme();
+    const display = TextTheme();
+    const body = TextTheme();
     return display.copyWith(
       bodyLarge: body.bodyLarge,
       bodyMedium: body.bodyMedium,
@@ -46,7 +45,7 @@ class AppTheme {
         foregroundColor: text,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.sora(
+        titleTextStyle: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: text,
@@ -55,12 +54,12 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        labelStyle: GoogleFonts.sora(
+        labelStyle: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: text,
         ),
-        hintStyle: GoogleFonts.inter(color: textMuted),
+        hintStyle: const TextStyle(color: textMuted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: border),
@@ -92,7 +91,7 @@ class AppTheme {
           disabledForegroundColor: Colors.white,
           minimumSize: const Size.fromHeight(48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: GoogleFonts.sora(
+          textStyle: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
           ),
@@ -101,7 +100,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: textMuted,
-          textStyle: GoogleFonts.inter(fontSize: 14),
+          textStyle: const TextStyle(fontSize: 14),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -109,13 +108,13 @@ class AppTheme {
         indicatorColor: primaryMuted,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.sora(
+            return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: primary,
             );
           }
-          return GoogleFonts.inter(fontSize: 12, color: textMuted);
+          return const TextStyle(fontSize: 12, color: textMuted);
         }),
       ),
     );

@@ -168,9 +168,9 @@ class _ManagerOrdersScreenState extends State<ManagerOrdersScreen> {
                             ),
                           if (order.paymentMethod == PaymentMethod.payAtCounter &&
                               order.paymentStatus == PaymentStatus.paid)
-                            OutlinedButton(
+                            const OutlinedButton(
                               onPressed: null,
-                              child: const Text('Payment Received ✓'),
+                              child: Text('Payment Received ✓'),
                             ),
                           if (order.student != null)
                             OutlinedButton.icon(
